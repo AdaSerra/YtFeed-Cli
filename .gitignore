@@ -2,4 +2,6 @@ data*
 sqll.cpp
 *.db
 *.exe
+*.obj
+*.pdb
 index.txt

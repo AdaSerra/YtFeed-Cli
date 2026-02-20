@@ -36,7 +36,7 @@ private:
                    << reinterpret_cast<const wchar_t *>(sqlite3_errmsg16(db))
                    << std::endl;
 
-        // rollback solo se una transazione è attiva
+        // rollback only if a transaction is active
         if (sqlite3_get_autocommit(db) == 0)
             sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
     }
@@ -93,8 +93,7 @@ private:
     }
 
 public:
-    int offset = 0;
-    int pageSize = 50;
+    
     Sqlite() = default;
     Sqlite(const std::wstring &file) { open(file); }
 
@@ -122,60 +121,8 @@ public:
             handleError(L"Error creating table");
     }
 
-    void nextPage() { offset += pageSize; }
-
-    void resetPage() { offset = 0; }
-
-    bool findChannel(const std::wstring &id)
-    {
-        query = "SELECT 1 FROM Channels WHERE Id = ?;";
-
-        rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
-        if (rc != SQLITE_OK)
-        {
-            handleError(L"Error prepare");
-            return false;
-        }
-        sqlite3_bind_text16(stmt, 1, id.c_str(), -1, SQLITE_TRANSIENT);
-        bool exists = (sqlite3_step(stmt) == SQLITE_ROW);
-        sqlite3_finalize(stmt);
-        if (exists)
-            return true;
-        return false;
-    }
-
-    Channel extractChannelByAuthor(const std::wstring &name)
-    {
-
-        Channel chan{};
-        std::string query = "SELECT Id FROM Channels WHERE Name = ?;";
-
-        sqlite3_stmt *stmt = nullptr;
-        int rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
-        if (rc != SQLITE_OK)
-        {
-            handleError(L"Error prepare extractChannelByAuthor");
-            return chan; 
-        }
-
-        sqlite3_bind_text16(stmt, 1, name.c_str(), -1, SQLITE_TRANSIENT);
-
-        if (sqlite3_step(stmt) == SQLITE_ROW)
-        {
-            const void *text = sqlite3_column_text16(stmt, 0);
-
-            if (text)
-            {
-                chan.id = reinterpret_cast<const wchar_t *>(text);
-                chan.name = name;
-            }
-        }
-
-        sqlite3_finalize(stmt);
-
-        return chan;
-    }
-
+   
+    
     int updateChannel(const Channel &ch)
     {
         query = "UPDATE Channels SET Name =? WHERE ID = ?;";
