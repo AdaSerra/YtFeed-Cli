@@ -125,4 +125,5 @@ ytfeed-cli -s 10
 ### ⚙ Build instructions
 ```
 MSVC (Developer Command Prompt)
-cl ytfeed-cli.cpp /O2 /EHsc /std:c++20 ```
+cl ytfeed-cli.cpp /O2 /EHsc /std:c++20
+```
