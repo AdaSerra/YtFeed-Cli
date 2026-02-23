@@ -73,7 +73,7 @@ struct Video
         struct tm* lt = localtime(&tp);
         wcsftime(timeStr, sizeof(timeStr) / sizeof(wchar_t), L"%H:%M:%S %d-%m-%Y", lt);
 
-        std::wcout << std::left << std::setw(20) << timeStr << "   " << std::setw(28) << author.substr(0, 28) << std::setw(50) << title.substr(0, 50) << "    " << std::setw(60) << (L"https://www.youtube.com/watch?=v" + id).substr(0, 60)
+        std::wcout << std::left << std::setw(20) << timeStr << "   " << std::setw(28) << author.substr(0, 28) << std::setw(50) << title.substr(0, 50) << "    " << std::setw(60) << (L"https://www.youtube.com/watch?v=" + id).substr(0, 60)
                    << std::endl;
     }
 
