@@ -10,15 +10,16 @@
 
 #include "types.h"
 
-inline const std::string CT_VIDEOS =
+inline constexpr const char *CT_VIDEOS =
     "CREATE TABLE IF NOT EXISTS Videos "
     "(Id TEXT PRIMARY KEY, "
     "Timestamp INTEGER, "
     "Title TEXT, "
     "Author TEXT, "
+    "Short INTEGER NOT NULL CHECK (Short IN (0, 1)), " // 0 normal 1 short
     "FOREIGN KEY(Author) REFERENCES Channels(Id) );";
 
-inline const std::string CT_CHANNELS =
+inline constexpr const char *CT_CHANNELS =
     "CREATE TABLE IF NOT EXISTS Channels"
     " (Id TEXT PRIMARY KEY, Name TEXT UNIQUE); ";
 
@@ -41,8 +42,6 @@ private:
             sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
     }
 
-   
-
     void extractVideos(std::vector<Video> &vec)
     {
 
@@ -53,7 +52,7 @@ private:
         // 2. for every row
         while (sqlite3_step(stmt) == SQLITE_ROW)
         {
-          
+
             const void *idPtr = sqlite3_column_text16(stmt, 0);
             std::wstring currentVideoId = idPtr ? reinterpret_cast<const wchar_t *>(idPtr) : L"";
 
@@ -61,20 +60,21 @@ private:
             // new aggreation logic
             if (currentVideoId != lastVideoId)
             {
-              
+
                 // if not first video, push in video in final vector
 
-                currentVideo.clear(); // <--- QUESTA È LA FIX
+                currentVideo.clear();
 
                 // read data new video
                 currentVideo.tp = sqlite3_column_int64(stmt, 1);
                 const void *title = sqlite3_column_text16(stmt, 2);
                 const void *author = sqlite3_column_text16(stmt, 3);
+                sqlite3_column_int64(stmt, 4) == 0 ? currentVideo.sh = false : currentVideo.sh = true;
                 // const void* url = sqlite3_column_text16(stmt, 9);
 
                 // wstring conversion
                 currentVideo.title = title ? reinterpret_cast<const wchar_t *>(title) : L"";
-                currentVideo.id = currentVideoId; // url ? reinterpret_cast<const wchar_t*>(url) : L"";
+                currentVideo.id = currentVideoId;
                 currentVideo.author = author ? reinterpret_cast<const wchar_t *>(author) : L"";
 
                 // update
@@ -93,7 +93,6 @@ private:
     }
 
 public:
-    
     Sqlite() = default;
     Sqlite(const std::wstring &file) { open(file); }
 
@@ -110,19 +109,16 @@ public:
 
     ~Sqlite() { close(); }
 
-    void beginTransaction()  { sqlite3_exec(db, "BEGIN;",  nullptr, nullptr, nullptr); }
+    void beginTransaction() { sqlite3_exec(db, "BEGIN;", nullptr, nullptr, nullptr); }
     void commitTransaction() { sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr); }
 
-
-    void createTable(const std::string &preset)
+    void createTable(const char *preset)
     {
-        rc = sqlite3_exec(db, preset.c_str(), nullptr, nullptr, nullptr);
+        rc = sqlite3_exec(db, preset, nullptr, nullptr, nullptr);
         if (rc != SQLITE_OK)
             handleError(L"Error creating table");
     }
 
-   
-    
     int updateChannel(const Channel &ch)
     {
         query = "UPDATE Channels SET Name =? WHERE ID = ?;";
@@ -148,38 +144,36 @@ public:
         return 1;
     }
 
-    int insertChannel(const std::wstring& chid)
-{
-    if (chid.empty())
-        return 0;
-
-    int counter = 0;
-
-    query =
-        "INSERT INTO Channels (Id) VALUES (?) "
-        "ON CONFLICT(Id) DO NOTHING;";
-
-    rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
-    if (rc != SQLITE_OK)
+    int insertChannel(const std::wstring &chid)
     {
-        std::wcerr << L"Errore prepare insertChannel: "
-                   << reinterpret_cast<const wchar_t *>(sqlite3_errmsg16(db))
-                   << std::endl;
-        return 0;
+        if (chid.empty())
+            return 0;
+
+        int counter = 0;
+
+        query =
+            "INSERT INTO Channels (Id) VALUES (?) "
+            "ON CONFLICT(Id) DO NOTHING;";
+
+        rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK)
+        {
+            std::wcerr << L"Errore prepare insertChannel: "
+                       << reinterpret_cast<const wchar_t *>(sqlite3_errmsg16(db))
+                       << std::endl;
+            return 0;
+        }
+
+        sqlite3_bind_text16(stmt, 1, chid.c_str(), -1, SQLITE_TRANSIENT);
+
+        rc = sqlite3_step(stmt);
+        if (rc == SQLITE_DONE)
+            counter = sqlite3_changes(db); // 1 = insert, 0 = already present
+
+        sqlite3_finalize(stmt);
+        return counter;
     }
 
-    sqlite3_bind_text16(stmt, 1, chid.c_str(), -1, SQLITE_TRANSIENT);
-
-    rc = sqlite3_step(stmt);
-    if (rc == SQLITE_DONE)
-        counter = sqlite3_changes(db); // 1 = insert, 0 = already present
-
-    sqlite3_finalize(stmt);
-    return counter;
-}
-
-
-    
     int removeChannel(const std::wstring &name)
     {
         query = "DELETE FROM Channels WHERE NAME = ?;";
@@ -220,7 +214,7 @@ public:
 
         sqlite3_bind_text16(stmt, 1, name.c_str(), -1, SQLITE_TRANSIENT);
 
-         while (sqlite3_step(stmt) == SQLITE_ROW)
+        while (sqlite3_step(stmt) == SQLITE_ROW)
         {
             const void *id = sqlite3_column_text16(stmt, 0);
             const void *name = sqlite3_column_text16(stmt, 1);
@@ -232,14 +226,14 @@ public:
         }
 
         sqlite3_finalize(stmt);
-        
+
         return 0;
     }
 
-     void extractChannels(std::vector<Channel> &vec)
-    {   
+    void extractChannels(std::vector<Channel> &vec)
+    {
         vec.clear();
-        query = "SELECT Channels.Id, Channels.Name FROM Channels;";
+        query = "SELECT Channels.Id, Channels.Name FROM Channels ORDER BY Channels.Name COLLATE NOCASE;";
         rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
         if (rc != SQLITE_OK)
         {
@@ -248,7 +242,7 @@ public:
                        << std::endl;
             return;
         }
-        
+
         while (sqlite3_step(stmt) == SQLITE_ROW)
         {
             const void *id = sqlite3_column_text16(stmt, 0);
@@ -270,7 +264,7 @@ public:
         vec.clear();
         // --- 1) QUERY ---
         query =
-            "SELECT Timestamp, Title, Author, Id "
+            "SELECT Timestamp, Title, Author, Id, Short "
             "FROM Videos "
             "WHERE Author = ? "
             "ORDER BY Timestamp DESC;";
@@ -295,13 +289,14 @@ public:
             const void *title = sqlite3_column_text16(stmt, 1);
             const void *author = sqlite3_column_text16(stmt, 2);
             const void *id = sqlite3_column_text16(stmt, 3);
+            sqlite3_column_int64(stmt, 4) == 1 ? v.sh = true : v.sh = false;
 
             // wstring conversion
             v.title = title ? reinterpret_cast<const wchar_t *>(title) : L"";
             v.id = id ? reinterpret_cast<const wchar_t *>(id) : L"";
             v.author = author ? reinterpret_cast<const wchar_t *>(author) : L"";
 
-            vec.push_back(std::move(v));
+            vec.emplace_back(std::move(v));
         }
 
         sqlite3_finalize(stmt);
@@ -336,107 +331,62 @@ public:
         sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
         int counter = 0;
 
-        // Statement INSERT with RETURNING
-        const char *insertQuery =
-            "INSERT INTO Videos (Id, Timestamp, Title, Author) "
-            "VALUES (?, ?, ?, ?) "
-            "ON CONFLICT(Id) DO NOTHING "
-            "RETURNING 1 AS was_insert;";
+        // Usiamo una sola query UPSERT invece di INSERT + UPDATE separati
+        query = "INSERT OR IGNORE INTO Videos (Id, Timestamp, Title, Author, Short) VALUES (?, ?, ?, ?, ?);";
 
-        sqlite3_stmt *insertStmt = nullptr;
-        sqlite3_prepare_v2(db, insertQuery, -1, &insertStmt, nullptr);
+        stmt = nullptr;
+        rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
 
-        // Statement UPDATE
-        const char *updateQuery =
-            "UPDATE Videos SET "
-            "Timestamp=?, Title=?, Author=? "
-            "WHERE Id=?;";
-
-        sqlite3_stmt *updateStmt = nullptr;
-        sqlite3_prepare_v2(db, updateQuery, -1, &updateStmt, nullptr);
+        if (rc != SQLITE_OK)
+        {
+            handleError(L"Error prepare Batch UPSERT");
+            return 0;
+        }
 
         for (const auto &vid : videos)
         {
-            auto bindText = [&](sqlite3_stmt *s, int idx, const std::wstring &val)
+            // bind
+            sqlite3_bind_text16(stmt, 1, vid.id.c_str(), -1, SQLITE_TRANSIENT);
+            sqlite3_bind_int64(stmt, 2, vid.tp);
+            sqlite3_bind_text16(stmt, 3, vid.title.c_str(), -1, SQLITE_TRANSIENT);
+            sqlite3_bind_text16(stmt, 4, vid.author.c_str(), -1, SQLITE_TRANSIENT);
+            sqlite3_bind_int(stmt, 5, vid.sh ? 1 : 0); 
+
+            rc = sqlite3_step(stmt);
+
+            if (rc == SQLITE_DONE)
             {
-                if (!val.empty())
-                    sqlite3_bind_text16(s, idx, val.c_str(), -1, SQLITE_TRANSIENT);
-                else
-                    sqlite3_bind_null(s, idx);
-            };
-
-            // ---------------------------
-            // 1)  INSERT
-            // ---------------------------
-            bindText(insertStmt, 1, vid.id);
-            sqlite3_bind_int64(insertStmt, 2, vid.tp);
-            bindText(insertStmt, 3, vid.title);
-            bindText(insertStmt, 4, vid.author);
-
-            int rc = sqlite3_step(insertStmt);
-
-            bool wasInsert = false;
-
-            if (rc == SQLITE_ROW)
-            {
-                wasInsert = true;
-                counter++;
-            }
-            else if (rc == SQLITE_DONE)
-            {
-                // 0 row → it was an  UPDATE
-                wasInsert = false;
+                if (sqlite3_changes(db) > 0)
+                    counter++;
             }
             else
             {
-                std::wcerr << L"Errore INSERT: "
-                           << reinterpret_cast<const wchar_t *>(sqlite3_errmsg16(db))
-                           << std::endl;
+                std::wcerr << L"Error batch line: " << reinterpret_cast<const wchar_t *>(sqlite3_errmsg16(db)) << std::endl;
             }
 
-            sqlite3_reset(insertStmt);
-            sqlite3_clear_bindings(insertStmt);
-
-            // ---------------------------
-            // 2) if not INSERT → UPDATE
-            // ---------------------------
-            if (!wasInsert)
-            {
-                sqlite3_bind_int64(updateStmt, 1, vid.tp);
-                bindText(updateStmt, 2, vid.title);
-                bindText(updateStmt, 3, vid.author);
-
-                rc = sqlite3_step(updateStmt);
-
-                if (rc != SQLITE_DONE)
-                {
-                    std::wcerr << L"Errore UPDATE: "
-                               << reinterpret_cast<const wchar_t *>(sqlite3_errmsg16(db))
-                               << std::endl;
-                }
-
-                sqlite3_reset(updateStmt);
-                sqlite3_clear_bindings(updateStmt);
-            }
+            // 2. Reset obbligatorio per il prossimo ciclo
+            sqlite3_reset(stmt);
+            sqlite3_clear_bindings(stmt);
         }
 
-        sqlite3_finalize(insertStmt);
-        sqlite3_finalize(updateStmt);
+        sqlite3_finalize(stmt);
         sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr);
 
         return counter;
     }
 
+   
     int insertVideo(const Video &vid)
     {
         // Query with UPSERT
         query =
-            "INSERT INTO Videos (Id, Timestamp, Title, Author) "
-            "VALUES (?, ?, ?, ?) "
+            "INSERT INTO Videos (Id, Timestamp, Title, Author, Short) "
+            "VALUES (?, ?, ?, ?, ?) "
             "ON CONFLICT(Id) DO UPDATE SET "
             "Timestamp = excluded.Timestamp, "
             "Title = excluded.Title, "
-            "Author = excluded.Author;";
+            "Author = excluded.Author, "
+            "Short = excluded.Short;";
 
         rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
         if (rc != SQLITE_OK)
@@ -447,11 +397,12 @@ public:
             return 0;
         }
 
-        // Bind 
+        // Bind
         sqlite3_bind_text16(stmt, 1, vid.id.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_int64(stmt, 2, vid.tp);
         sqlite3_bind_text16(stmt, 3, vid.title.c_str(), -1, SQLITE_TRANSIENT);
         sqlite3_bind_text16(stmt, 4, vid.author.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int64(stmt, 5, vid.sh ? 1 : 0);
 
         rc = sqlite3_step(stmt);
         if (rc != SQLITE_DONE)
@@ -466,8 +417,6 @@ public:
         sqlite3_finalize(stmt);
         return 1;
     }
-
-
 
     void close()
     {

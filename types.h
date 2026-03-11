@@ -11,7 +11,7 @@ struct Channel
 
     void printChannel() const
     {
-        std::wcout << std::left << std::setw(28) << id << "   " << std::setw(28) << name << std::endl;  
+        std::wcout << std::left << std::setw(28) << id << "   " << std::setw(28) << name << "\n";  
     }
     
 };
@@ -22,6 +22,7 @@ struct Video
     std::wstring title;
     std::wstring author;
     std::wstring id; 
+    bool sh; // true normal // false short 
 
     time_t getTime(const std::wstring& wiso)
 {
@@ -32,7 +33,7 @@ struct Video
     std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
     std::string iso = conv.to_bytes(wiso);
 
-    // Caso con offset
+    // with offset
     if (sscanf(iso.c_str(), "%d-%d-%dT%d:%d:%d%c%d:%d",
                &tm.tm_year, &tm.tm_mon, &tm.tm_mday,
                &tm.tm_hour, &tm.tm_min, &tm.tm_sec,
@@ -73,12 +74,16 @@ struct Video
         struct tm* lt = localtime(&tp);
         wcsftime(timeStr, sizeof(timeStr) / sizeof(wchar_t), L"%H:%M:%S %d-%m-%Y", lt);
 
-        std::wcout << std::left << std::setw(20) << timeStr << "   " << std::setw(28) << author.substr(0, 28) << std::setw(50) << title.substr(0, 50) << "    " << std::setw(60) << (L"https://www.youtube.com/watch?v=" + id).substr(0, 60)
-                   << std::endl;
+        std::wcout << std::left << std::setw(20) << timeStr << "   " 
+                    << std::setw(25) << author.substr(0, 25) << "  "
+                    << std::setw(60) << title.substr(0, 60)  << "   "
+                    <<std::setw(44) << (L"https://www.youtube.com/watch?v=" + id).substr(0, 44) 
+                    << (sh ? L"  S" : L"") <<"\n";
+                  
     }
 
     Video() = default;
-    Video(const std::wstring& wi, time_t nt, const std::wstring& au, const std::wstring& ti, const std::wstring& id) : author(au), title(ti), id(id)
+    Video(const std::wstring& wi, time_t nt, const std::wstring& au, const std::wstring& ti, const std::wstring& id, bool sh) : author(au), title(ti), id(id), sh(sh)
     {
         if (nt == 0)
             tp = getTime(wi);
@@ -89,9 +94,7 @@ struct Video
     bool operator>(const Video& other) const
     {
         if (tp == other.tp)
-        {
             return author > other.author;
-        }
 
         else
             return tp > other.tp;

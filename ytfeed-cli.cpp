@@ -219,7 +219,8 @@ void parseXML(const wchar_t *wbuffer, Channel &channel)
             if (!pEntry)
                 continue;
 
-            std::wstring title, id, times;
+            std::wstring title, id, times, link;
+            bool is_short;
 
             auto extract = [&](std::wstring &key, const wchar_t *xpath)
             {
@@ -238,8 +239,11 @@ void parseXML(const wchar_t *wbuffer, Channel &channel)
             extract(title, L".//*[local-name()='title']");
             extract(id, L".//*[local-name()='videoId']");
             extract(times, L".//*[local-name()='published']");
+            extract(link, L".//*[local-name()='link']/@href");
 
-            Video video(times, 0, channel.name, title, id);
+            is_short = (link.length() == 43) ? false : true;
+          
+            Video video(times, 0, channel.name, title, id, is_short);
             videos.emplace_back(std::move(video));
 
             pEntry->Release();
@@ -312,7 +316,8 @@ int main(int argc, char *argv[])
     db.createTable(CT_CHANNELS);
     db.createTable(CT_VIDEOS);
     _setmode(_fileno(stdout), _O_U16TEXT);
-
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(NULL);
     for (int i = 1; i < argc; i++)
     {
         // --- OPZIONE -s LIMIT ---
@@ -411,6 +416,7 @@ int main(int argc, char *argv[])
         if (_stricmp(argv[i], "-C") == 0)
         {
             db.extractChannels(chns);
+          
             for (const auto &c : chns)
                 c.printChannel();
             exit(0);
@@ -491,8 +497,8 @@ int main(int argc, char *argv[])
     std::sort(videos.begin(), videos.end(), [](const auto &a, const auto &b)
               { return a > b; });
 
-    std::wcout << L"New Videos(s): " << cv << std::endl;
-    if (newchan > 0) std::wcout << L"New Channel(s): " << newchan << std::endl;
+    std::wcout << L"New Video(s): " << cv << "\n";
+    if (newchan > 0) std::wcout << L"New Channel(s): " << newchan << "\n";
     
     for (int i = 0; i < videos.size(); i++)
     {

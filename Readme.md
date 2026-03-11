@@ -113,12 +113,13 @@ ytfeed-cli -s 10
 | Name   | TEXT    | Channel name       | (fetched from feed)
 
  Videos Table
-| Column    | Type    |  Description     |
-|-----------|---------|------------------|
-| Id        | TEXT PK | YouTube Video Id |  
-| Title     | TEXT    | Video title      | 
-| Author    | TEXT    | Channel name     | FK REFERENCES Channels(Id)
-| Timestamp | INTEGER | Unix timestamp   |
+| Column    | Type    |  Description         |
+|-----------|---------|----------------------|
+| Id        | TEXT PK | YouTube Video Id     |  
+| Title     | TEXT    | Video title          | 
+| Author    | TEXT    | Channel name         | FK REFERENCES Channels(Id)
+| Short     | INTEGER | Short(1) not(0) Video|
+| Timestamp | INTEGER | Unix timestamp       |
 
 
 ```
