@@ -5,5 +5,6 @@ sqll.cpp
 *.obj
 *.pdb
 *.html
+*.bin
 index.txt
 
