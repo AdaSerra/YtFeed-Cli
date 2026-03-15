@@ -95,7 +95,6 @@ struct Video
     {
         if (tp == other.tp)
             return author > other.author;
-
         else
             return tp > other.tp;
     }

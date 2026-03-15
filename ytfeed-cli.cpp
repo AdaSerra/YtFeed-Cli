@@ -403,6 +403,7 @@ int main(int argc, char *argv[])
 
     db.createTable(CT_CHANNELS);
     db.createTable(CT_VIDEOS);
+    db.createTable(CT_SETTING);
     _setmode(_fileno(stdout), _O_U16TEXT);
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(nullptr);
@@ -429,6 +430,7 @@ int main(int argc, char *argv[])
                 if (parse_int(argv[i + 1], tmp))
                 {
                     keep = tmp < DEFAULT_LIMIT_FEED ? DEFAULT_LIMIT_FEED : tmp;
+                    db.saveSettings(keep);
                     i++;
                 }
             }
@@ -459,6 +461,7 @@ int main(int argc, char *argv[])
                 for (const auto &c : channels)
                     newchan += db.insertChannel(c);
                 db.commitTransaction();
+               if(newchan > 0) db.saveSettings(-1);
             }
 
             i++;
@@ -483,6 +486,7 @@ int main(int argc, char *argv[])
             }
 
             newchan = db.insertChannel(wid);
+            if(newchan > 0) db.saveSettings(-1);
             i++;
             continue;
         }
@@ -605,6 +609,7 @@ int main(int argc, char *argv[])
         }
 
         cv = db.insertVideosBatch(videos);
+  
         videos.clear();
 
         WinHttpCloseHandle(hConnect);
@@ -615,7 +620,7 @@ int main(int argc, char *argv[])
     for (const auto &ch : chns)
     {
         std::vector<Video> chanVideos;
-        db.loadVideosAndTrim(chanVideos, ch.name, keep);
+        db.loadVideosAndTrim(chanVideos, ch.name);
         videos.insert(videos.end(), chanVideos.begin(), chanVideos.end());
     }
 
