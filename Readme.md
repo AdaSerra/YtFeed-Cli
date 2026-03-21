@@ -1,76 +1,173 @@
-## Ytfeed‑cli
+## Ytf
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6.svg) ![Language](https://img.shields.io/badge/language-C%2B%2B20-00599C.svg) ![SQLite](https://img.shields.io/badge/database-SQLite-003B57.svg) ![WinHTTP](https://img.shields.io/badge/network-WinHTTP-0082C9.svg) ![MSXML6](https://img.shields.io/badge/XML-MSXML6-6A5ACD.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6.svg) ![Language](https://img.shields.io/badge/language-C%2B%2B20-00599C.svg) ![SQLite](https://img.shields.io/badge/SQLite-embedded-003B57.svg) ![curl](https://img.shields.io/badge/cURL-required-073551.svg) ![utf8proc](https://img.shields.io/badge/Unicode-utf8proc-6A5ACD.svg)
 
-A fast, lightweight YouTube RSS fetcher and SQLite indexer for Windows.
+
+![logo](logo3.png "Ytf")
+A fast, lightweight YouTube RSS fetcher and SQLite indexer.
 
 ### 📌 Overview
-Ytfeed‑cli is a minimalistic command‑line tool designed to fetch YouTube channel feeds via RSS, parse them using MSXML6, and store normalized video metadata into a local SQLite database.
-It is the console counterpart of a more complete WinRT/WinUI application, sharing the same core logic but optimized for automation, scripting,  and low‑overhead usage.
 
-The tool is built entirely on native Windows APIs:
+Ytf is a minimalistic CLI tool that:
 
-WinHTTP for HTTPS requests
+Fetches YouTube RSS feeds (no API key required)
 
-MSXML6 for XML parsing
+Parses XML manually (no DOM, no external XML libs)
 
-SQLite (winsqlite3) for persistent storage
+Stores channels & videos in SQLite
 
-C++20 for performance and portability
+Normalizes Unicode with utf8proc
 
-Its goal is simple: track multiple YouTube channels, store their latest videos, and present them sorted by publication date.
+Outputs clean, deterministic console results
+
+Everything except curl is embedded and statically linked.
 
 ### ✨ Features
-Fetches YouTube RSS feeds directly (no API key required)
 
-Parses XML using MSXML6 with robust error handling
+Direct RSS fetching via HTTPS
 
-Stores channels and videos in SQLite with conflict‑free inserts
+Manual XML parsing with robust error handling
 
-Automatically trims old videos (keeps the latest 30 per channel)
+SQLite storage with conflict‑free inserts
 
-Supports batch insertion for high performance
+Automatic trimming (keeps latest N videos per channel)
 
-Validates YouTube channel IDs with strict regex
+UTF‑8 normalization (NFC)
 
-Validates Windows filenames safely
+Filename validation
 
-UTF‑8 → UTF‑16 conversion for full Unicode support
+Extract only URL at a specific index
 
-Clean, deterministic output suitable for scripting
+Clean output for scripting
+
+Statistics and activity summaries
+
+### 🔍 Querying & Filtering
+
+Sort by date, author, title, stars, views
+
+Filter by channel
+
+Show extended info
+
+Limit output
+
+Show only new videos (last 24h)
+
+Show only shorts / only long‑form
+
+Generate static HTML page
+
+
+### 📊 Statistics & Insights
+
+The tool can also compute lightweight statistics directly from the database:
+
+Most Channel activity in past days
+Best Videos
+
+Publication frequency
+
+Last update timestamps
+
+Oldest/newest indexed entries
+
+Quick summaries for scripting or monitoring setups
 
 ### 🛠 Requirements
 
-- Windows 10 or later
-- Visual Studio (MSVC)
-- SQLite (winsqlite3.lib)
-- MSXML6
-- WinHTTP
+Mandatory
+A C++20 compiler (MSVC, GCC, Clang)
 
-All dependencies are native to Windows.
+curl
+
+Linux/macOS: system package
+
+Windows: libcurl.dll must be present next to the executable
+
+Embedded (no external install needed)
+SQLite (compiled from sqlite3.c)
+
+utf8proc (compiled from utf8proc.c)
+
 
 ### 🚀 Usage
 Basic syntax
+
 ```
-ytfeed-cli [options]
+ytf [options]
+```
+```
+ytf -L channels.txt
+ytf -a UC_x5XG1OV2P6uZZ5FSM9Ttw
+ytf -s 10 -o v
+ytf -w
+```
+
+```
+ytf -h
  
 Option	Description
-  -A, --add <id>         Add a single YouTube channel ID
-  -C, --channel          Show all channels (ID + name) stored in the database
-  -D, --delete <name>    Delete a channel by name
-  -F, --feed <name>      Show feeds from a single channel by name
-  -K, --keep <number>    Max videos saved per author in database from most recent (min: 30)
+  -a, --add <id>         Add a single YouTube channel ID
+  -l, --list             Show all channels (ID + name) stored in the database"
+  -r, --remove <name>    Delete a channel by name
+  -e, --ext              Show extended feeds info
+  -f, --feed <name>      Show feeds from a single channel by name
+  -i, --index <number>   Show only url at selected index
+  -k, --keep <number>    Max videos saved per author in database (min: 30)
   -L, --load <file>      Load a list of YouTube channel IDs from a text file
-  -N, --new              Show feeds published in last 24 hours
-  -Q, --quiet             Run without network access; list only videos stored in the database
-  -S, --show <number>    Limit the number of feeds printed (default: 20)
-  -X, --stat             Show feeds and database statistics
-  -W, --web              Generate a static html page with last feeds
-  -H, --help             Show this help message
+  -n, --new              Show feeds published in last 24 hours
+  -o, --order <f> [d]    Sort by 'd'ate, 'a'uthor, 't'itle, 's'tars, 'v'iews
+                         Direction 'up'/'down'. Defaults: a,t (up), others (down)
+  -q, --quiet            Offline mode: list only videos in database
+  -p, --purge            Remove incomplete entries and vacuum database
+  -s, --limit <number>   Limit the number of feeds printed (default: 20)
+  -V, --video-only       Hide short videos (show only long-form)
+  -S, --short-only       Hide long videos (show only shorts)
+  -x, --stat             Show feeds and database statistics
+  -w, --web              Generate a static HTML page with selected feeds
+  -b, --about            Print credits
+  -v, --version          Show version
+  -h, --help             Show this help message
   
 ```
 
-📄 Input file format (-L)
+No one arguments, default output:
+```
+ytf
+---------------------------------------------------------------- YOUTUBE FEED UPDATE-------------------------------------------------------------
+
+New Video(s): 3
+19:46:00 20-03-2026  Linus Tech Tips        Testing TikTok hacks...                                     https://youtu.be/8id_d_Kz2Ic
+16:01:20 20-03-2026  Smosh                  We Made A Reality Dating Show | Bit City                    https://youtu.be/mpvbhS89UpY
+16:00:26 20-03-2026  National Geographic    As spring rolls around, beehives buzz with life and         https://youtu.be/Fo6TlVlLi50
+16:00:03 20-03-2026  MrBeast                I Hid $1,000,000 In This Vault                              https://youtu.be/jCE1Ol3PYDs
+.....
+
+```
+
+Show some database statistics:
+```
+ytf -x
+
+---------- YOUTUBE STATISTICS -----------
+
+Total Channels: 15
+Total Videos: 225
+Total Videos Shorts: 67
+Recent Videos (last 24 hours): 5
+Average gap between videos: 228.667 hours
+
+---- ACTIVITY LAST 10 DAYS (32 Videos) ----              ------- TOP CHANNELS ---------          ------- BEST VIDEOS (s/v) -----
+
+20-03-2026 | ##### (5)                                  National Ge  | ###### (13)                We Made A Reality Dating  Smosh         11.39%
+19-03-2026 | ######## (8)                               Linus Tech   | ##### (10)                 Martian Soil Is Deadly.   PBS Space Ti  9.48%
+18-03-2026 | ### (3)                                    Smosh        | ## (4)                     I Fixed YouTube !         PewDiePie     8.60%
+17-03-2026 | ##### (5)                                  TED-Ed       | # (3)                      He 3D Printed a case ins  Linus Tech T  7.86%
+......
+```
+
+### 📄 Input file format (-L)
 
 A plain text file containing one YouTube channel ID per line:
 ```
@@ -80,94 +177,8 @@ UCYO_jab_esuFRV4b17AJtAw
 ```
 Invalid IDs are rejected with a warning.
 
-### 🔍 Example commands
-No one arguments, default output:
-```
-ytfeed-cli
----------------------------------------------------------------- YOUTUBE FEED UPDATE-------------------------------------------------------------
 
-New Video(s): 225
-New Channel(s): 15
-09:00:00 12-03-2026    NPR Music                  Madi Diaz: Tiny Desk Concert                                   https://www.youtube.com/watch?v=-VwcJdXJoxs
-23:01:48 11-03-2026    Android Developers         Expanding our stage for PC and paid titles                     https://www.youtube.com/watch?v=tuXjvBXjkw8
-18:16:37 11-03-2026    Linus Tech Tips            Apple’s Co-Founder Left to Make THIS??                         https://www.youtube.com/watch?v=VxoB4vM1pUM
-14:30:26 11-03-2026    Computerphile              Vector Search with LLMs - Computerphile                        https://www.youtube.com/watch?v=YDdKiQNw80c
-14:19:12 11-03-2026    NPR Music                  #DeskOfTheDay: "Goodbye, Cowboy," Belltower                    https://www.youtube.com/watch?v=ywtpXmRwUC8   S
-23:40:30 10-03-2026    Marques Brownlee           Macbook Neo Review: Better than you Think!                     https://www.youtube.com/watch?v=iGeXGdYE7UE
-17:58:22 10-03-2026    Linus Tech Tips            We Built the ULTIMATE Gaming Firetruck                         https://www.youtube.com/watch?v=zn5lAEdv2DY
-15:01:48 10-03-2026    TED-Ed                     What happens when you break a bone? - Gurpreet Baht and Nata   https://www.youtube.com/watch?v=gVXoAbeB8QI
-15:00:01 10-03-2026    Kurzgesagt – In a Nutshel  This Is the Scariest Place in The Universe                     https://www.youtube.com/watch?v=yDAAlojz8NU
-14:09:59 10-03-2026    NPR Music                  #DeskOfTheDay: "Return to Sender," KC Shane & The Belonging    https://www.youtube.com/watch?v=Mt64jh5hGxM   S
-23:03:52 09-03-2026    Vsauce                     An Illusion You Can Hug                                        https://www.youtube.com/watch?v=_Nr4mvdkEVw   S
-```
-Load channels from file:
-```
-ytfeed-cli -L channels.txt
-```
-Add a single channel:
-```
-ytfeed-cli -A UC_x5XG1OV2P6uZZ5FSM9Ttw
-```
-Show the latest 10 videos:
-```
-ytfeed-cli -S 10
-```
-Show some statistics:
-```
-ytfeed-cli -X
-
----------- YOUTUBE STATISTICS -----------
-
-Total Channels: 15
-Total Videos: 225
-Total Videos Shorts: 72
-Recent Videos (last 24 hours): 5
-Average gap between videos: 115.702 hours
-
------------ ACTIVITY LAST 10 DAYS (39 Videos) -------------------------             ---------------- TOP CHANNELS -------------------
-
-2026-03-12 | # (1)                                                                 NPR Music                 | ########### (11)
-2026-03-11 | #### (4)                                                              Linus Tech Tips           | ####### (7)
-2026-03-10 | ##### (5)                                                             Kurzgesagt – In a Nutshell | #### (4)
-2026-03-09 | ############## (14)                                                   Android Developers        | #### (4)
-2026-03-08 | ## (2)                                                                thenewboston              | ### (3)
-2026-03-07 | ### (3)                                                               Marques Brownlee          | ### (3)
-2026-03-06 | ##### (5)                                                             TED-Ed                    | ## (2)
-2026-03-05 | ####### (7)                                                           Computerphile             | ## (2)
-2026-03-04 | #### (4)                                                              Vsauce                    | # (1)
-2026-03-03 | ##### (5)                                                             Veritasium                | # (1)
-
------------ ACTIVITY LAST 2 MONTHS Weekly (129 Videos) ----------------            ---------------- TOP CHANNELS -------------------
-
-2026-03-09 - 2026-03-15 | ##### (10)                                               TED-Ed                    | ############### (15)
-2026-03-02 - 2026-03-08 | #################### (40)                                NPR Music                 | ############### (15)
-2026-02-23 - 2026-03-01 | ######### (19)                                           Marques Brownlee          | ############### (15)
-2026-02-16 - 2026-02-22 | ######## (16)                                            Linus Tech Tips           | ############### (15)
-2026-02-09 - 2026-02-15 | ##### (11)                                               Kurzgesagt – In a Nutshell | ############### (15)
-2026-02-02 - 2026-02-08 | #### (9)                                                 Android Developers        | ############### (15)
-2026-01-26 - 2026-02-01 | #### (9)                                                 Veritasium                | ############ (12)
-2026-01-19 - 2026-01-25 | #### (8)                                                 Fireship                  | ########## (10)
-2026-01-12 - 2026-01-18 | ### (7)                                                  Computerphile             | ######## (8)
-
--------------------------------------------------------------- NEWEST AND OLDEST VIDEOS --------------------------------------------------------------
-
-09:00:00 12-03-2026    NPR Music                  Madi Diaz: Tiny Desk Concert                                   https://www.youtube.com/watch?v=-VwcJdXJoxs
-12:45:11 28-03-2023    CGP Grey                   How a Video Game Gave Antarctica Its Flag                      https://www.youtube.com/watch?v=U0wTDK0VOeY
-
------------ DATABASE STATISTICS ----------------
-
-Database size: 68 kb
-Schema version 2
-Integrity: ok
-Freelist pages: 0
-Journal mode: wal
-Synchronous mode: 1
-Foreign Keys: 1
-Total table :2
-```
-
-Show 
-🧠 How it works (internal pipeline)
+### 🧠 How it works (internal pipeline)
 
 - Parse arguments  
 - Validate filenames, numeric limits, and channel IDs
@@ -183,7 +194,7 @@ Show
 - Sort and display  
   Videos are sorted by timestamp (newest first)
 
-🧩 Database schema
+### 🧩 Database schema
 ```
   Channels Table
 | Column | Type    |  Description       |
@@ -195,7 +206,9 @@ Show
 | Column    | Type    |  Description             |
 |-----------|---------|------------------------- |
 | Id        | TEXT PK | YouTube Video Id         |  
-| Title     | TEXT    | Video title              | 
+| Title     | TEXT    | Video title              |
+| Views     | INTEGER | Video views              |
+| Stars     | INTEGER | Video stars (likes)      |   
 | Author    | TEXT    | Channel name             | FK REFERENCES Channels(Name)
 | Short     | INTEGER | Short Video (1) or not(0)|
 | Timestamp | INTEGER | Unix timestamp           |
@@ -203,7 +216,54 @@ Show
 
 ```
 ### ⚙ Build instructions
+
+####  Option 1 — CMake (recommended)
+The project includes a full CMake setup with automatic curl fetch:
 ```
-MSVC (Developer Command Prompt)
-cl ytfeed-cli.cpp /O2 /EHsc /std:c++20
+bash
+
+cmake -B build
+cmake --build build --config Release
 ```
+Notes
+On Windows, curl is fetched via FetchContent and built dynamically (libcurl.dll).
+
+On Linux/macOS, system curl is used if available.
+
+SQLite and utf8proc are always compiled statically.
+
+####  Option 2 — PowerShell build script
+For quick builds without CMake:
+
+```
+pwsh 
+
+build.ps1
+```
+Windows
+Uses MSVC (cl.exe)
+
+Compiles SQLite and utf8proc statically
+
+Requires libcurl.dll in the same folder as the final executable
+
+Runtime: /MD (dynamic), compatible with curl
+
+Linux/macOS
+Uses clang++ or g++
+
+Links against system curl (-lcurl)
+
+Produces a single ytf binary
+
+### 📦 Relaese Notes
+
+Png logo included
+
+Windows release includes libcurl.dll
+
+Database is created automatically on first run
+
+### 📜 License
+
+MIT License — see LICENSE for details.

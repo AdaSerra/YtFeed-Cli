@@ -1,105 +1,66 @@
 #pragma once
-#include <windows.h>
-#include <iostream>
-#include <codecvt>
+#include <cstdint>
+#include <cstddef>
+#include <string>
 #include <ctime>
+
+/* #include "const.h"
+#include "console.h"
+#include "util.h" */
+
+enum Field : uint8_t
+{
+    TIMESTAMP = 0,
+    AUTHOR = 1,
+    TITLE = 2,
+    VIEWS = 3,
+    STARS = 4,
+    PERCENT = 5
+};
+
+enum Direction : uint8_t
+{
+    ASC = 0,
+    DESC = 1
+};
+
+enum VideoFilter : uint8_t
+{
+    ONLY_NORMAL = 0,
+    ONLY_SHORT = 1,
+    ALL = 2,
+};
 
 struct Channel
 {
-    std::wstring id = L"";
-    std::wstring name = L"";
-
-    void printChannel() const
-    {
-        std::wcout << std::left << std::setw(28) << id << "   " << std::setw(28) << name << "\n";  
-    }
-    
+    std::string id = "";
+    std::string name = "";
+    void printChannel() const;   
 };
 
 struct Video
 {
+public:
     time_t tp = 0;
-    std::wstring title;
-    std::wstring author;
-    std::wstring id; 
-    bool sh; // true normal // false short 
-
-    time_t getTime(const std::wstring& wiso)
-{
-    struct tm tm = {};
-    int tz_hour = 0, tz_min = 0;
-    char sign = '+';
-
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
-    std::string iso = conv.to_bytes(wiso);
-
-    // with offset
-    if (sscanf(iso.c_str(), "%d-%d-%dT%d:%d:%d%c%d:%d",
-               &tm.tm_year, &tm.tm_mon, &tm.tm_mday,
-               &tm.tm_hour, &tm.tm_min, &tm.tm_sec,
-               &sign, &tz_hour, &tz_min) == 9)
-    {
-        tm.tm_year -= 1900;
-        tm.tm_mon -= 1;
-
-        time_t t = mktime(&tm);
-
-        int offset = tz_hour * 3600 + tz_min * 60;
-        if (sign == '+')
-            t -= offset;
-        else if (sign == '-')
-            t += offset;
-
-        return t;
-    }
-    // without offset
-    else if (sscanf(iso.c_str(), "%d-%d-%dT%d:%d:%d",
-                    &tm.tm_year, &tm.tm_mon, &tm.tm_mday,
-                    &tm.tm_hour, &tm.tm_min, &tm.tm_sec) == 6)
-    {
-        tm.tm_year -= 1900;
-        tm.tm_mon -= 1;
-
-        return mktime(&tm); // local time
-    }
-    else
-    {
-        return (time_t)-1; // error
-    }
-}
-
-    void printVideo() const
-    {
-        wchar_t timeStr[64];
-        struct tm* lt = localtime(&tp);
-        wcsftime(timeStr, sizeof(timeStr) / sizeof(wchar_t), L"%H:%M:%S %d-%m-%Y", lt);
-
-        std::wcout << std::left << std::setw(20) << timeStr << "   " 
-                    << std::setw(25) << author.substr(0, 25) << "  "
-                    << std::setw(60) << title.substr(0, 60)  << "   "
-                    <<std::setw(44) << (L"https://www.youtube.com/watch?v=" + id).substr(0, 44) 
-                    << (sh ? L"  S" : L"") <<"\n";
-                  
-    }
-
+    uint64_t views = 0;
+    uint64_t stars = 0;
+    double percent = 0.0;
+    char id[12] = {};
+    bool sh = true; // true normal // false short
+    std::string title;
+    std::string author;
+    
     Video() = default;
-    Video(const std::wstring& wi, time_t nt, const std::wstring& au, const std::wstring& ti, const std::wstring& id, bool sh) : author(au), title(ti), id(id), sh(sh)
-    {
-        if (nt == 0)
-            tp = getTime(wi);
-        else
-            tp = nt;
-    }
-
-    bool operator>(const Video& other) const
+    Video(const std::string &wi, time_t nt, const std::string &ti, const std::string &au, const std::string &idStr, bool sh);
+    time_t getTime(const std::string &iso);
+    void printVideo(bool ext, int idx = 0);
+    void clear();
+    
+    bool operator>(const Video &other) const
     {
         if (tp == other.tp)
             return author > other.author;
         else
             return tp > other.tp;
-    }
-    void clear() 
-    {
-        author.clear(); id.clear(); title.clear(); tp = 0;
     }
 };
