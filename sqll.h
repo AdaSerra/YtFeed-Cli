@@ -55,12 +55,17 @@ private:
    
 
 public:
-    Field f = TIMESTAMP;
+
+    Field f = TIMESTAMP; 
     Direction d = DESC;
     VideoFilter vf = ALL;
+    TimeFilter tf = NONE;
+    time_t tpa[2];
+
     Sqlite();
     Sqlite(const char *file);
     ~Sqlite();
+
     void open(const char *file);
     void beginTransaction();
     void commitTransaction();
@@ -71,10 +76,9 @@ public:
     int removeChannel(const std::string &name);
     bool existsChannel(const std::string &name);
     void extractChannels(std::vector<Channel> &vec);
-    void extractVideos(std::vector<Video> &vec, uint32_t lim, const std::string filterChannel = "", uint32_t tsb = 0);
+    void extractVideos(std::vector<Video> &vec, uint32_t lim, const std::string filterChannel = "", uint32_t lastSecond = 0);
     void trimAllAuthor();
     int insertVideosBatch(const std::vector<Video> &videos);
-    void extractVideosLast24h(std::vector<Video> &vec);
     void getVideoBoundaries(Video &out, bool desc, Field fd);
     void purge(size_t &dc, size_t &dv);
     void stat(int width);

@@ -135,6 +135,29 @@ void Video::printVideo(bool ext, int idx)
             sh ? "  S" : "");
  } */
 
+void Video::jsonVideo()
+{
+    char timeStr[32];
+    struct tm lt;
+
+#ifdef _WIN32
+    localtime_s(&lt, &tp);
+#else
+    localtime_r(&tp, &lt);
+#endif
+    //format ISO 8601: %Y-%m-%dT%H:%M:%S%z -> 2026-03-22T15:00:00+0100
+   strftime(timeStr, sizeof(timeStr), "%Y-%m-%dT%H:%M:%S%z", &lt);
+
+   std::cout << " {"
+              << "\"published\":\"" << timeStr << "\","
+              << "\"author\":\""    << author << "\","
+              << "\"title\":\""     << title << "\","
+              << "\"views\":"       << views << "," // I numeri non hanno bisogno di virgolette
+              << "\"stars\":"       << stars << ","
+              << "\"url\":\""       << "https://youtu.be/" << id << "\""
+              << "}";
+}
+
 void Video::clear()
 {
     author.clear();

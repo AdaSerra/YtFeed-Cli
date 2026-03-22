@@ -71,7 +71,7 @@ add_executable(ytf ${MY_SOURCES} ${DEP_SOURCES})
 # 6. Linking
 # ---------------------------------------------------------
 # 
-target_link_libraries(ytf PRIVATE curl::libcurl)
+target_link_libraries(ytf PRIVATE libcurl)
 
 if(WIN32)
     target_link_libraries(ytf PRIVATE

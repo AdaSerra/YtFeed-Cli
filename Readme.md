@@ -109,27 +109,30 @@ ytf -w
 ytf -h
  
 Option	Description
-  -a, --add <id>         Add a single YouTube channel ID
-  -l, --list             Show all channels (ID + name) stored in the database"
-  -r, --remove <name>    Delete a channel by name
-  -e, --ext              Show extended feeds info
-  -f, --feed <name>      Show feeds from a single channel by name
-  -i, --index <number>   Show only url at selected index
-  -k, --keep <number>    Max videos saved per author in database (min: 30)
-  -L, --load <file>      Load a list of YouTube channel IDs from a text file
-  -n, --new              Show feeds published in last 24 hours
-  -o, --order <f> [d]    Sort by 'd'ate, 'a'uthor, 't'itle, 's'tars, 'v'iews
-                         Direction 'up'/'down'. Defaults: a,t (up), others (down)
-  -q, --quiet            Offline mode: list only videos in database
-  -p, --purge            Remove incomplete entries and vacuum database
-  -s, --limit <number>   Limit the number of feeds printed (default: 20)
-  -V, --video-only       Hide short videos (show only long-form)
-  -S, --short-only       Hide long videos (show only shorts)
-  -x, --stat             Show feeds and database statistics
-  -w, --web              Generate a static HTML page with selected feeds
-  -b, --about            Print credits
-  -v, --version          Show version
-  -h, --help             Show this help message
+  -a, --add <id>          Add a single YouTube channel ID
+  -l, --list              Show all channels (ID + name) stored in the database"
+  -r, --remove <name>     Delete a channel by name
+  -e, --ext               Show extended feeds info
+  -f, --feed <name>       Show feeds from a single channel by name
+  -i, --index <number>    Show only url at selected index
+  -j, --json              Print output in json format
+  -k, --keep <number>     Max videos saved per author in database (min: 30)
+  -L, --load <file>       Load a list of YouTube channel IDs from a text file
+  -n, --new               Show feeds published in last 24 hours
+  -o, --order <s> [d]     Sort by 'd'ate, 'a'uthor, 't'itle, 's'tars, 'v'iews
+                          Direction 'up'/'down'. Defaults: a,t (up), others (down)
+  -q, --quiet             Offline mode: list only videos in database
+  -p, --purge             Remove incomplete entries and vacuum database
+  -s, --limit <number>    Limit the number of feeds printed (default: 20)
+  -t, --time <f> [<date>] Date filter: 'e'qual (whole day), 'a'fter, 'b'efore, 'r'ange (requires two date)
+                          Date format DD-MM-YYYY\n"
+  -V, --video-only        Hide short videos (show only long-form)
+  -S, --short-only        Hide long videos (show only shorts)
+  -x, --stat              Show feeds and database statistics
+  -w, --web               Generate a static HTML page with selected feeds
+  -b, --about             Print credits
+  -v, --version           Show version
+  -h, --help              Show this help message
   
 ```
 

@@ -20,6 +20,7 @@ std::string escapeHTML(const std::string_view data);
 void generateHTML(const std::vector<Video> &videos, size_t newchan, size_t newvid, uint32_t limit);
 bool parse_int(const char *str, int &out);
 bool isValidFilename(const char *filename);
+time_t stringToTp(const char* dateStr);
 
 inline bool isValidChannelID(std::string &id) 
 {

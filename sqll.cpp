@@ -81,8 +81,6 @@ void Sqlite::rollbackTransaction()
     }
 }
 
-
-
 void Sqlite::getCountPair(const char *sql, std::vector<std::pair<std::string, int>> &out)
 {
     out.clear();
@@ -300,13 +298,13 @@ void Sqlite::extractChannels(std::vector<Channel> &vec)
     return;
 }
 
-void Sqlite::extractVideos(std::vector<Video> &vec, uint32_t lim, const std::string filterChannel, uint32_t tsb)
+void Sqlite::extractVideos(std::vector<Video> &vec, uint32_t lim, const std::string filterChannel, uint32_t lastSecond)
 {
     // base query
     std::string query =
         "SELECT Id, Timestamp, Title, Author, Views, Stars, Short";
 
-    if (tsb > 0)
+    if (f == PERCENT)
     {
         query += ", CASE WHEN Views = 0 THEN 0 "
                  "       ELSE (Stars * 100.0 / Views) "
@@ -320,7 +318,26 @@ void Sqlite::extractVideos(std::vector<Video> &vec, uint32_t lim, const std::str
         query += "AND Author = ? ";
     }
 
-    if (tsb != 0)
+    if (tf != NONE)
+    {
+        switch (tf)
+        {
+        case BEFORE:
+            query += "AND Timestamp < ? ";
+            break;
+
+        case AFTER:
+            query += "AND Timestamp > ? ";
+            break;
+
+        case EQUAL:
+        case RANGE:
+            query += "AND Timestamp BETWEEN ? AND ? ";
+            break;
+        }
+    }
+
+    if (lastSecond != 0)
     {
         query += "AND Timestamp > strftime('%s','now') - ? ";
     }
@@ -372,9 +389,30 @@ void Sqlite::extractVideos(std::vector<Video> &vec, uint32_t lim, const std::str
     {
         sqlite3_bind_text(st.ptr, bindIdx++, filterChannel.c_str(), -1, SQLITE_TRANSIENT);
     }
-    if (tsb != 0)
+
+    if (tf != NONE)
     {
-        sqlite3_bind_int64(st.ptr, bindIdx++, tsb);
+        switch (tf)
+        {
+        case NONE:
+            break;
+
+        case BEFORE:
+        case AFTER:
+            sqlite3_bind_int64(st.ptr, bindIdx++, static_cast<sqlite3_int64>(tpa[0]));
+            break;
+
+        case EQUAL:
+        case RANGE:
+            sqlite3_bind_int64(st.ptr, bindIdx++, static_cast<sqlite3_int64>(tpa[0]));
+            sqlite3_bind_int64(st.ptr, bindIdx++, static_cast<sqlite3_int64>(tpa[1]));
+            break;
+        }
+    }
+
+    if (lastSecond != 0)
+    {
+        sqlite3_bind_int64(st.ptr, bindIdx++, lastSecond);
     }
 
     sqlite3_bind_int64(st.ptr, bindIdx, lim);
@@ -534,30 +572,6 @@ int Sqlite::insertVideosBatch(const std::vector<Video> &videos)
     return counter;
 }
 
-void Sqlite::extractVideosLast24h(std::vector<Video> &vec)
-{
-    vec.clear();
-    const char *sql =
-        "SELECT Id, Timestamp, Title, Author, Views, Stars, Short FROM Videos "
-        "WHERE Timestamp > strftime('%s','now') - 86400;";
-    Stmt st{nullptr};
-
-    rc = sqlite3_prepare_v2(db, sql, -1, &st.ptr, nullptr);
-    if (rc != SQLITE_OK)
-    {
-        handleError("Error prepare (extractVideo24h): ");
-        return;
-    }
-
-    // --- EXTRACT ---
-    while (sqlite3_step(st.ptr) == SQLITE_ROW)
-    {
-        Video v{};
-        readVideo(v, st);
-        vec.emplace_back(std::move(v));
-    }
-}
-
 void Sqlite::getVideoBoundaries(Video &out, bool desc, Field fd)
 {
     std::string query =
@@ -694,7 +708,7 @@ void Sqlite::stat(int width)
     std::cout << std::fixed << std::setprecision(2);
     for (size_t i = 0; i < lastWeek.size(); i++)
     {
-       
+
         std::string bar1(lastWeek[i].second, '#');
         std::string bar2(lastWeekC[i].second / 2, '#');
         std::cout << std::setw(10) << lastWeek[i].first
@@ -759,12 +773,12 @@ void Sqlite::stat(int width)
     responsiveConsole(" FIRST AND LAST VIEWS VIDEO ", width);
     std::cout << std::left << std::setw(13) << v4.views;
     v4.printVideo(false);
-    std::cout<< std::left << std::setw(13) << v3.views;
+    std::cout << std::left << std::setw(13) << v3.views;
     v3.printVideo(false);
     responsiveConsole(" FIRST AND LAST STARS VIDEO ", width);
-    std::cout <<std::left << std::setw(13) << v6.stars;
+    std::cout << std::left << std::setw(13) << v6.stars;
     v6.printVideo(false);
-    std::cout << std::left << std::setw(13) << v5.stars ;
+    std::cout << std::left << std::setw(13) << v5.stars;
     v5.printVideo(false);
 
     std::cout << "\n----------- DATABASE STATISTICS ----------------\n\n"

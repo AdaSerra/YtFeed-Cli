@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#include <cstddef>     
-#include <cstdint>      
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <iomanip>
 #include <thread>
@@ -21,7 +21,7 @@
 #pragma comment(lib, "libcurl.lib")
 
 int main(int argc, char *argv[])
- {
+{
 
     uint32_t limit = DEFAULT_LIMIT_CONSOLE;
     uint32_t keep = DEFAULT_LIMIT_FEED;
@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
     bool quiet = false;
     bool singleVideo = false;
     bool extendFormat = false;
+    bool json = false;
 
     // counter
     size_t newchan = 0;
@@ -54,9 +55,9 @@ int main(int argc, char *argv[])
     SetConsoleCP(CP_UTF8);
     std::locale::global(std::locale("en_US.UTF-8"));
 #else
-    std::locale::global(std::locale::classic()); 
+    std::locale::global(std::locale::classic());
 #endif
-    
+
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(nullptr);
 
@@ -82,13 +83,13 @@ int main(int argc, char *argv[])
             return 0;
         }
 
-        //  --- Version 
+        //  --- Version
         if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0)
         {
             std::cout << VERS;
             return 0;
         }
-        //  --- about 
+        //  --- about
         if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--about") == 0)
         {
             printLogo();
@@ -101,7 +102,7 @@ int main(int argc, char *argv[])
             db.extractChannels(chns);
             for (const auto &c : chns)
                 c.printChannel();
-           return 0;
+            return 0;
         }
         // ---PURGE---
         if (strcmp(argv[i], "--purge") == 0 || strcmp(argv[i], "-p") == 0)
@@ -130,7 +131,7 @@ int main(int argc, char *argv[])
             if (i + 1 >= argc)
             {
                 std::cerr << "[Remove] Error: missing channel name\n";
-               return 1;
+                return 1;
             }
 
             std::string wid = argv[i + 1];
@@ -150,7 +151,7 @@ int main(int argc, char *argv[])
             {
                 int tmp;
                 if (parse_int(argv[++i], tmp))
-                { 
+                {
                     indexVideo = (tmp >= 0) ? (size_t)tmp : 0;
                     singleVideo = true;
                 }
@@ -252,7 +253,7 @@ int main(int argc, char *argv[])
             if (!isValidChannelID(wid))
             {
                 std::cerr << "[Add] Error: channel Id not valid " << wid << "\n";
-               return 1;
+                return 1;
             }
 
             newchan = db.insertChannel(wid);
@@ -262,9 +263,9 @@ int main(int argc, char *argv[])
                 std::cout << "[Add] New channel added with Id: " << wid;
                 db.saveSettings(-1);
             }
-            else 
+            else
             {
-                std::cout <<"[Add] Channel already present\n";
+                std::cout << "[Add] Channel already present\n";
             }
             return 0;
         }
@@ -288,7 +289,7 @@ int main(int argc, char *argv[])
                 return 0;
             }
         }
-        //  ---- ORDER 
+        //  ---- ORDER
         if (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--order") == 0)
         {
             if (i + 1 < argc)
@@ -319,7 +320,7 @@ int main(int argc, char *argv[])
                     break;
                 default:
                     std::cerr << "[Order] Unknown order field: " << field << "\n";
-                    continue;
+                    return 1;
                 }
 
                 if (i + 1 < argc)
@@ -340,11 +341,117 @@ int main(int argc, char *argv[])
             }
         }
 
+        // ---TIME
+        if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--time") == 0)
+        {
+            if (i + 1 >= argc)
+            {
+                std::cerr << "[Time] Missing time field after -t\n";
+                return 1;
+            }
+
+            char field = argv[++i][0];
+
+            switch (field)
+            {
+            case 'e': // equal
+            {
+                if (i + 1 >= argc)
+                {
+                    std::cerr << "[Time] Missing argument for equal\n";
+                    return 1;
+                }
+
+                db.tpa[0] = stringToTp(argv[++i]);
+                if ( db.tpa[0] <= 0)
+                {
+                    std::cerr << "[Time] Invalid date for equal\n";
+                    return 1;
+                }
+                db.tpa[1] = db.tpa[0] + 24*60*60 - 1;
+                db.tf = EQUAL;
+                break;
+            }
+
+            case 'b': // before
+            {
+                if (i + 1 >= argc)
+                {
+                    std::cerr << "[Time] Missing argument for before\n";
+                    return 1;
+                }
+
+                db.tpa[0] = stringToTp(argv[++i]);
+                if ( db.tpa[0] <= 0)
+                {
+                    std::cerr << "[Time] Invalid date for before\n";
+                    return 1;
+                }
+
+                db.tf = BEFORE;
+                break;
+            }
+
+            case 'a': // after
+            {
+                if (i + 1 >= argc)
+                {
+                    std::cerr << "[Time] Missing argument for after\n";
+                    return 1;
+                }
+
+                db.tpa[0] = stringToTp(argv[++i]);
+                if (db.tpa[0] <= 0)
+                {
+                    std::cerr << "[Time] Invalid date for after\n";
+                    return 1;
+                }
+
+                db.tf = AFTER;
+                break;
+            }
+
+            case 'r':
+            {
+                if (i + 2 >= argc)
+                {
+                    std::cerr << "[Time] Range requires two dates\n";
+                    return 1;
+                }
+
+                db.tpa[0] = stringToTp(argv[++i]);
+                db.tpa[1] = stringToTp(argv[++i]);
+
+                if (db.tpa[0] <= 0 || db.tpa[1] <= 0)
+                {
+                    std::cerr << "[Time] Invalid dates for range\n";
+                    return 1;
+                }
+
+                if (db.tpa[1] < db.tpa[0])
+                    std::swap(db.tpa[0], db.tpa[1]);
+
+                db.tpa[1] =  db.tpa[1] + 24*60*60 - 1;
+                db.tf = RANGE;
+                break;
+            }
+
+            default:
+                std::cerr << "[Time] Unknown time field: " << field << "\n";
+                return 1;
+            }
+        }
+
         // config
         // --- NEW VIDEOS FLAG -n / --new ---
         if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--new") == 0)
         {
             news = true;
+            continue;
+        }
+        if (strcmp(argv[i], "-j") == 0 || strcmp(argv[i], "--json") == 0)
+        {
+            json = true;
             continue;
         }
         // ---QUIET FLAG -q / --quiet ---
@@ -379,7 +486,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    db.extractChannels(chns); 
+    db.extractChannels(chns);
 
     videos.reserve(chns.size() * 15);
 
@@ -438,7 +545,7 @@ int main(int argc, char *argv[])
     // flag new/recent video
     if (news)
     {
-        db.extractVideosLast24h(videos);
+        db.extractVideos(videos, limit, "", 86400);
     }
     else if (singleChannel)
     {
@@ -460,6 +567,18 @@ int main(int argc, char *argv[])
     if (web)
     {
         generateHTML(videos, newchan, newvideo, limit);
+        return 0;
+    }
+    if (json)
+    {
+        std::cout << "[\n";
+        for (size_t i = 0; i < videos.size(); i++)
+        {
+            videos[i].jsonVideo();
+            if (i < videos.size() - 1)
+                std::cout << ",\n";
+        }
+        std::cout << "\n]";
         return 0;
     }
 

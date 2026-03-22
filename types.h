@@ -27,6 +27,15 @@ enum VideoFilter : uint8_t
     ALL = 2,
 };
 
+enum TimeFilter : uint8_t
+{
+    NONE = 0,
+    EQUAL = 1,
+    BEFORE = 2,
+    AFTER = 3,
+    RANGE = 4
+};
+
 struct Channel
 {
     std::string id = "";
@@ -50,6 +59,7 @@ public:
     Video(const std::string &wi, time_t nt, const std::string &ti, const std::string &au, const std::string &idStr, bool sh);
     time_t getTime(const std::string &iso);
     void printVideo(bool ext, int idx = 0);
+    void jsonVideo();
     void clear();
     
     bool operator>(const Video &other) const

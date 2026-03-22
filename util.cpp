@@ -411,6 +411,22 @@ bool isValidFilename(const char *filename)
     return true;
 }
 
+time_t stringToTp(const char* dateStr) 
+{
+   struct tm t;
+    memset(&t, 0, sizeof(t));
+
+    int day, month, year;
+
+    if (sscanf(dateStr, "%d-%d-%d", &day, &month, &year) != 3)
+        return (time_t)-1;
+
+    t.tm_mday = day;
+    t.tm_mon  = month - 1;  
+    t.tm_year = year - 1900;
+
+    return mktime(&t);
+}
 
 
 /* void printLeftPaddedUTF8(std::string_view input, size_t width, size_t max_chars)
