@@ -693,7 +693,8 @@ void Sqlite::stat(int width, const char * file)
     getCountPair("SELECT strftime('%d-%m-%Y', Timestamp, 'unixepoch'), COUNT(*) "
                  "FROM Videos "
                  "WHERE Timestamp >= strftime('%s','now') - 864000 "
-                 "GROUP BY 1 ORDER BY 1 DESC LIMIT 10;",
+                 "GROUP BY 1 "
+                 "ORDER BY MIN(Timestamp) DESC LIMIT 10;",
                  lastWeek);
     getCountPair(
         "SELECT Author, COUNT(*) FROM Videos "
@@ -749,7 +750,7 @@ void Sqlite::stat(int width, const char * file)
     {
 
         std::string bar1((lastWeek[i].second) / 4, '#');
-        std::string bar2(lastWeekC[i].second / 2, '#');
+        std::string bar2(lastWeekC[i].second / 3, '#');
         std::cout << std::setw(10) << lastWeek[i].first
                   << std::setw(32) << (" | " + bar1 + " (" + std::to_string(lastWeek[i].second) + ")");
         if (i < lastWeekC.size())
